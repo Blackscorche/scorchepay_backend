@@ -2,7 +2,6 @@ import express from "express";
 import dotenv from "dotenv";
 import connectDB from "./config/db.js";
 import authRoutes from "./routes/authRoutes.js";
-import walletRoutes from "./routes/walletRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
 import cors from "cors";
 
@@ -30,7 +29,6 @@ connectDB();
 
 // ✅ Define your routes
 app.use("/api/auth", authRoutes);
-app.use("/api/auth/wallet", walletRoutes);
 app.use("/api/users", userRoutes);
 
 // ✅ Error handler
