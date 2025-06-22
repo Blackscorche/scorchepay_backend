@@ -10,24 +10,30 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// ✅ Fix CORS here
+// ✅ Apply CORS before anything else
 app.use(cors({
   origin: ['http://localhost:51507', 'https://scorchepay-backend.up.railway.app'],
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true
+  credentials: true,
 }));
 
+// ✅ Handle preflight manually just in case
+app.options('*', cors());
+
+// ✅ Parse body
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// ✅ Connect to MongoDB
 connectDB();
 
+// ✅ Define your routes
 app.use("/api/auth", authRoutes);
 app.use("/api/auth/wallet", walletRoutes);
 app.use("/api/users", userRoutes);
 
-// Error handler (optional, move to bottom)
+// ✅ Error handler
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(500).send('Something broke!');
