@@ -24,7 +24,9 @@ export const sendResetEmail = async (to, token) => {
     text: `Your password reset code is: ${token}`,
     html: `
       <div style="background:#f7f8fa; color:#23272f; max-width:420px; margin:40px auto; border-radius:20px; box-shadow:0 4px 24px #0001; padding:36px 28px; font-family:'Segoe UI', Arial, sans-serif;">
-
+        <div style="text-align:center; margin-bottom:18px;">
+          <img src="cid:scorchelogo" alt="ScorchePay Logo" style="width:80px; height:auto; margin-bottom:10px;"/>
+        </div>
         <h3 style="text-align:center; color:#23272f; font-size:1.3rem; margin-bottom:10px; letter-spacing:1px;">Password Reset Code</h3>
         <div style="text-align:center; margin:28px 0;">
           <span style="display:inline-block; font-size:2.2rem; letter-spacing:10px; font-weight:700; color:#ff3c3c; background:#fff; border-radius:12px; padding:18px 0; width:220px; box-shadow:0 2px 8px #ff3c3c22;">
@@ -41,7 +43,14 @@ export const sendResetEmail = async (to, token) => {
           <span style="color:#ff3c3c; font-size:1em; font-weight:bold; letter-spacing:1px;">ScorchePay</span>
         </div>
       </div>
-    `
+    `,
+    attachments: [
+      {
+        filename: "ScorcheLogo.png",
+        path: logoPath,
+        cid: "scorchelogo"
+      }
+    ]
   };
 
   await transporter.sendMail(mailOptions);

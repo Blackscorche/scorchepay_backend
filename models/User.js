@@ -6,7 +6,7 @@ const userSchema = new mongoose.Schema({
   phone: String,
   bvn: String,
   password: String,
-  role: { type: String, enum: ["user", "merchant", "admin"], default: "user" },
+  role: { type: String, enum: ["user", "giftcardVerifier", "admin"], default: "user" },
   isVerified: { type: Boolean, default: false },
   wallets: {
     ngn: { type: Number, default: 0 },

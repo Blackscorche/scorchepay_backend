@@ -1,16 +1,16 @@
 import express from "express";
 import { protect, authorize } from "../middlewares/auth.js";
 import {
-    getMerchantProfile,
-    getMerchantTransactions,
+    getGiftcardVerifierProfile,
+    getGiftcardVerifierTransactions,
     submitGiftcardProposal,
 } from "../controllers/merchantController.js";
 
 const router = express.Router();
-router.use(protect, authorize("merchant"));
+router.use(protect, authorize("giftcardVerifier"));
 
-router.get("/me", getMerchantProfile);
-router.get("/transactions", getMerchantTransactions);
+router.get("/me", getGiftcardVerifierProfile);
+router.get("/transactions", getGiftcardVerifierTransactions);
 router.post("/giftcard", submitGiftcardProposal);
 
 export default router;

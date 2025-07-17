@@ -2,22 +2,22 @@ import User from "../models/User.js";
 import Transaction from "../models/Transaction.js";
 
 // View own profile
-export const getMerchantProfile = async (req, res) => {
+export const getGiftcardVerifierProfile = async (req, res) => {
     try {
-        const merchant = await User.findById(req.user.userId).select("-password");
-        if (!merchant || merchant.role !== "merchant")
+        const verifier = await User.findById(req.user.userId).select("-password");
+        if (!verifier || verifier.role !== "giftcardVerifier")
             return res.status(403).json({ message: "Unauthorized" });
 
-        res.status(200).json(merchant);
+        res.status(200).json(verifier);
     } catch (err) {
         res.status(500).json({ message: "Failed to load profile" });
     }
 };
 
-// Get merchant transactions
-export const getMerchantTransactions = async (req, res) => {
+// Get giftcard verifier transactions
+export const getGiftcardVerifierTransactions = async (req, res) => {
     try {
-        const txns = await Transaction.find({ merchantId: req.user.userId });
+        const txns = await Transaction.find({ verifierId: req.user.userId });
         res.status(200).json(txns);
     } catch (err) {
         res.status(500).json({ message: "Failed to fetch transactions" });
