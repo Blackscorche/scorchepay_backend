@@ -1,78 +1,75 @@
-import Wallet from '../models/Wallet.js';
-import User from '../models/User.js';
-import Transaction from '../models/Transactions.js';
-import mongoose from 'mongoose';
+import User from "../models/User.js";
+import Transaction from "../models/Transaction.js";
+import { v4 as uuidv4 } from "uuid";
 
-export const transferFunds = async (req, res) => {
-  const session = await mongoose.startSession();
-  session.startTransaction();
+// Fund Wallet (initiates Flutterwave)
+export const fundWallet = async (req, res) => {
+  const { amount } = req.body;
+  const { userId } = req.user;
 
   try {
-    const { recipientUsername, amount } = req.body;
-    const transferAmount = parseFloat(amount);
+    // initiateFlutterwaveTransaction should be in utils/flutterwave.js
+    const paymentLink = await initiateFlutterwaveTransaction({
+      amount,
+      userId,
+      email: req.user.email,
+      currency: "NGN",
+    });
 
-    if (!recipientUsername || isNaN(transferAmount) || transferAmount <= 0) {
-      return res.status(400).json({ message: 'Invalid transfer data' });
-    }
+    const tx = await Transaction.create({
+      userId,
+      type: "funding",
+      status: "pending",
+      amount,
+      paymentRef: uuidv4(),
+    });
 
-    const senderWallet = await Wallet.findOne({ user: req.user.id }).session(session);
-    const senderUser = await User.findById(req.user.id).session(session);
-
-    const recipientUser = await User.findOne({ username: recipientUsername }).session(session);
-    if (!recipientUser) {
-      return res.status(404).json({ message: 'Recipient user not found' });
-    }
-
-    if (recipientUser._id.toString() === req.user.id) {
-      return res.status(400).json({ message: 'Cannot transfer to yourself' });
-    }
-
-    const recipientWallet = await Wallet.findOne({ user: recipientUser._id }).session(session);
-    if (!recipientWallet) {
-      return res.status(404).json({ message: 'Recipient wallet not found' });
-    }
-
-    if (senderWallet.balance < transferAmount) {
-      return res.status(400).json({ message: 'Insufficient balance' });
-    }
-
-    // Perform transfer
-    senderWallet.balance -= transferAmount;
-    recipientWallet.balance += transferAmount;
-
-    await senderWallet.save({ session });
-    await recipientWallet.save({ session });
-
-    await Transaction.create([{
-      type: 'transfer',
-      from: senderUser._id,
-      to: recipientUser._id,
-      amount: transferAmount,
-      description: `Transfer from ${senderUser.username} to ${recipientUser.username}`,
-      status: 'success'
-    }], { session });
-
-    await session.commitTransaction();
-    session.endSession();
-
-    res.json({ message: 'Transfer successful' });
-
-  } catch (error) {
-    await session.abortTransaction();
-    session.endSession();
-    console.error('Transfer error:', error);
-    res.status(500).json({ message: 'Server error during transfer' });
+    res.status(200).json({ link: paymentLink });
+  } catch (err) {
+    res.status(500).json({ message: "Failed to initiate funding", err });
   }
 };
-export const getWalletBalance = async (req, res) => {
+
+// Transfer to another user
+export const transferFunds = async (req, res) => {
+  const { to, amount } = req.body;
+  const fromId = req.user.userId;
+
   try {
-    const wallet = await Wallet.findOne({ user: req.user.id });
-    if (!wallet) {
-      return res.status(404).json({ message: 'Wallet not found' });
-    }
-    res.json({ balance: wallet.balance });
-  } catch (error) {
-    console.error('Error fetching wallet balance:', error);
-    res.status(500).json({ message: 'Server error' });
+    if (fromId === to) return res.status(400).json({ message: "Invalid recipient" });
+
+    const sender = await User.findById(fromId);
+    const recipient = await User.findById(to);
+    if (!recipient) return res.status(404).json({ message: "Recipient not found" });
+
+    if (sender.wallets.ngn < amount)
+      return res.status(400).json({ message: "Insufficient balance" });
+
+    sender.wallets.ngn -= amount;
+    recipient.wallets.ngn += amount;
+
+    await sender.save();
+    await recipient.save();
+
+    await Transaction.create([
+      {
+        userId: fromId,
+        type: "transfer",
+        status: "completed",
+        amount,
+        to: to,
+      },
+      {
+        userId: to,
+        type: "receive",
+        status: "completed",
+        amount,
+        from: fromId,
+      },
+    ]);
+
+    res.status(200).json({ message: "Transfer complete" });
+  } catch (err) {
+    res.status(500).json({ message: "Transfer failed", err });
   }
 };
