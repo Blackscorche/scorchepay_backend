@@ -1,41 +1,44 @@
 import User from "../models/User.js";
-import Transaction from "../models/Transaction.js";
+import GiftcardProposal from "../models/GiftcardProposal.js";
+import cloudinary from "../utils/cloudinary.js";
 
-// View own profile
+
+// View giftcard verifier profile (only one verifier in the system)
 export const getGiftcardVerifierProfile = async (req, res) => {
     try {
-        const verifier = await User.findById(req.user.userId).select("-password");
-        if (!verifier || verifier.role !== "giftcardVerifier")
-            return res.status(403).json({ message: "Unauthorized" });
-
+        const verifier = await User.findOne({ role: "giftcardVerifier" }).select("-password");
+        if (!verifier)
+            return res.status(404).json({ message: "Giftcard verifier not found" });
         res.status(200).json(verifier);
     } catch (err) {
         res.status(500).json({ message: "Failed to load profile" });
     }
 };
 
-// Get giftcard verifier transactions
-export const getGiftcardVerifierTransactions = async (req, res) => {
-    try {
-        const txns = await Transaction.find({ verifierId: req.user.userId });
-        res.status(200).json(txns);
-    } catch (err) {
-        res.status(500).json({ message: "Failed to fetch transactions" });
-    }
-};
-
 // Submit giftcard or update rate (basic version)
-export const submitGiftcardProposal = async (req, res) => {
-    const { name, rate } = req.body;
-
-    try {
-        // Save this into GiftcardProposal model (create it optionally)
-        // Or send to admin via notifications/log
-        // Placeholder logic:
-        console.log("Giftcard proposal:", { name, rate, submittedBy: req.user.userId });
-
-        res.status(200).json({ message: "Proposal submitted to admin" });
-    } catch (err) {
-        res.status(500).json({ message: "Failed to submit proposal" });
+try {
+    const { code } = req.body;
+    if (!req.file || !code) {
+        return res.status(400).json({ message: "Image and code are required" });
     }
-};
+    // Upload image to Cloudinary (promisified)
+    const uploadToCloudinary = (fileBuffer) => {
+        return new Promise((resolve, reject) => {
+            const stream = cloudinary.uploader.upload_stream({ folder: "giftcards" }, (error, result) => {
+                if (error) return reject(error);
+                resolve(result);
+            });
+            stream.end(fileBuffer);
+        });
+    };
+    const result = await uploadToCloudinary(req.file.buffer);
+    const proposal = await GiftcardProposal.create({
+        imageUrl: result.secure_url,
+        code,
+        submittedBy: req.user.userId
+    });
+    res.status(200).json({ message: "Proposal submitted to admin", proposal });
+} catch (err) {
+    res.status(500).json({ message: "Failed to submit proposal" });
+}
+

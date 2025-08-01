@@ -1,11 +1,17 @@
 import express from "express";
-import { protect, authorize } from "../middlewares/auth.js";
-import { getMyProfile, updateProfile, getWallet } from "../controllers/userController.js";
-
+import { getMyProfile, updateProfile } from "../controllers/userController.js";
+import { protect } from "../middlewares/authMiddleware.js";
+import { submitBVN } from "../controllers/userController.js";
+import { verifyBVNAndCreateAccount } from '../controllers/userController.js';
 const router = express.Router();
 
-router.get("/me", protect, authorize("user", "merchant"), getMyProfile);
-router.put("/update", protect, authorize("user", "merchant"), updateProfile);
-router.get("/wallet", protect, authorize("user", "merchant"), getWallet);
+// ✅ Get current user profile
+router.get("/profile", protect, getMyProfile);
+
+// ✅ Update current user profile
+router.put("/profile", protect, updateProfile);
+
+router.post('/verify-bvn', protect, verifyBVNAndCreateAccount);
+
 
 export default router;

@@ -1,5 +1,5 @@
 import express from "express";
-import { protect, authorize } from "../middlewares/auth.js";
+import { protect, authorize } from "../middlewares/authMiddleware.js";
 import { getAllUsers, updateUserStatus, deleteUser } from "../controllers/adminController.js";
 
 const router = express.Router();
